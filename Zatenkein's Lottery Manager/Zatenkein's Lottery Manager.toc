@@ -1,0 +1,7 @@
+## Interface: 70100
+## Title: Zatenkein's Lottery Manager
+## Author: Charles Hunter
+## Version: 0.1
+## SavedVariables:ZLM_Donators
+
+main.lua
