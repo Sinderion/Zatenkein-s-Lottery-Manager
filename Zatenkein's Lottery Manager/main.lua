@@ -14,7 +14,7 @@ end
 ZLM_Donator = { name = "", donations = {} }
 ZLM_Donation = { item = "", quantity = 0 }
 
-function ZLM_Donator:new (o,name, item, quantity)
+function ZLM_Donator:new (name, item, quantity)
 	self = {};
 	self.name = name;
 	if item == nil then
@@ -28,7 +28,8 @@ function ZLM_Donator:new (o,name, item, quantity)
 end
 
 function ZLM_AddOrUpdateDonation(donator,item,quantity)
-	for _,donation in donator.donations do
+	print("TABLEVAL:",donator.donations)
+	for donation in donator.donations do
 		if donation.item == item then
 			item.quantity = item.quantity + quantity
 			return
@@ -57,7 +58,7 @@ function ZLM_UpdateOrAddDonator(name,item,quantity)
 			return
 		end
 	end
-	table.insert(ZLM_Donators,ZLM_Donator:new(nil,name,item,quantity))
+	table.insert(ZLM_Donators,ZLM_Donator:new(name,item,quantity))
 end
 
 function ZLM_GetInventoryRoom()
