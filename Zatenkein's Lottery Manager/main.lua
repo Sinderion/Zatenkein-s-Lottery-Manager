@@ -1,8 +1,12 @@
-local ZLM_EventFrame = CreatFrame("Frame")
-local ZLM_InventoryCount = 0
-local waitTable = {}
-local waitFrame = nil
-local ZLM_Donators
+
+-- Not locals lol
+ZLM_DEBUG = 3  --Not used yet.
+ZLM_EventFrame = CreateFrame("Frame")
+ZLM_InventoryCount = 0
+ZLM_CheckMailNow = 1;
+waitTable = {}
+waitFrame = nil
+-- ZLM_Donators
 if ZLM_Donators == nil then 
     ZLM_Donators = {} 
 end
@@ -18,10 +22,12 @@ function ZLM_Donator:new (o,name, item, quantity)
 	else
         self.donations = { ZLM_Donation:new(item,quantity) }
     end
-    return self;
+        --Debug Only
+        print("New Donator created: ", self.name,".");
+    return o
 end
 
-function ZLM_Donator:addOrUpdateDonation (item,quantity)
+function ZLM_Donator:addOrUpdateDonation(item,quantity)
 	for _,donation in self.donations do
 		if donation.item == item then
 			item.quantity = item.quantity + quantity
@@ -29,6 +35,7 @@ function ZLM_Donator:addOrUpdateDonation (item,quantity)
 		end
 	end
 	table.insert(self.donations,ZLM_Donation:new(item,quantity))
+    print("Inside donator add or update donation")
 end
 
 function ZLM_Donation:new(item,quantity,o)
@@ -41,11 +48,16 @@ end
 function ZLM_UpdateOrAddDonator(name,item,quantity)
 	for _,donator in pairs(ZLM_Donators) do
 		if donator.name == name then
-			donator:addorUpdateDonation(item,quantity)
+            --ZLM_Donator.addOrUpdateDonation(donator, item, quantity)
+            --Debug only
+            print("About to update ",donator.name,"'s record.")
+            print("Updating with ",item,". Quantity: ",quantity)
+            print(donator.donations)
+			donator:addorUpdateDonation(item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
 			return
 		end
 	end
-	table.insert(ZLM_Donators,Donator:new(nil,name,item,quantity))
+	table.insert(ZLM_Donators,ZLM_Donator:new(nil,name,item,quantity))
 end
 
 function ZLM_GetInventoryRoom()
@@ -92,11 +104,13 @@ end
 
 
 function ZLM_TryGetMail(mailID, mailCount)
-	packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
+	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
+    --Debug only
+    print("Checking next mail: Found item from ", sender,": ",subject," Total of ",itemCount," items.");
 	if itemCount > 0 and CODAmount == 0 then
 		local itemIndex = 1
 		while itemIndex <= itemCount do
-			i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itemIndex)
+			local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itemIndex)
 			ZLM_UpdateOrAddDonator(sender,i_name,i_count)
 			TakeInboxItem(mailID,itemIndex)
 			itemIndex = itemIndex + 1
@@ -107,14 +121,14 @@ function ZLM_TryGetMail(mailID, mailCount)
 end
 
 function ZLM_TryGetMailSlow(mailID, mailCount)
-	packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
+	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
 	if itemCount > 0 and CODAmount == 0 then
 		ZLM__wait(0.5,ZLM_TryGetMailItem,mailID,mailCount,itemCount,1, sender)
 	end
 end
 
 function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender)
-	i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itterate)
+	local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itterate)
 	ZLM_UpdateOrAddDonator(sender,i_name,i_count)
 	TakeInboxItem(mailID,itterate)
 	ZLM_GetInventoryRoom()
@@ -133,13 +147,34 @@ function ZLM_CheckNext(mailID, mailCount)
 	end
 end
 
-ZLM_EventFrame:RegisterEvent("MAIL_SHOW")
+--ZLM_EventFrame:RegisterEvent("MAIL_SHOW")
+ZLM_EventFrame:RegisterEvent("MAIL_INBOX_UPDATE") -- Required before you can query inbox info.
+
 ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
+    --Debug only
+    print("OnEvent triggered");
+    -- If we're not done with the inbox yet, don't process now.
+    if event == "MAIL_INBOX_UPDATE" then 
+        
+        if ZLM_CheckMailNow == 0 then
+            print("Not time to check mail.");
+            return 
+        end
+
+        ZLM_CheckMailNow = 0;
+    end
+    
+
+    
 	ZLM_mailCount, ZLM_serverCount = GetInboxNumItems()
 	ZLM_GetInventoryRoom()
+    --Debug only
+    print("Loaded up. Mail count = ", ZLM_mailCount, " ZLM_serverCount = ", ZLM_serverCount, " Inventory space = ", ZLM_InventoryCount);
+
 	if ZLM_mailCount > 0 then
-		if inventorySpace > 8 then
+		if ZLM_InventoryCount > 8 then
 			ZLM__wait(0.5,ZLM_TryGetMail,1, ZLM_mailCount)
+            --C_Timer.After(1,function ZLM_TryGetMail(
 		else
 			ZLM__wait(0.5,ZLM_TryGetMailSlow,1, ZLM_mailCount)
 		end
