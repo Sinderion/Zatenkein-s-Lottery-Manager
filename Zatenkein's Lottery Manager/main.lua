@@ -27,14 +27,14 @@ function ZLM_Donator:new (o,name, item, quantity)
     return o
 end
 
-function ZLM_Donator:addOrUpdateDonation(item,quantity)
-	for _,donation in self.donations do
+function ZLM_AddOrUpdateDonation(donator,item,quantity)
+	for _,donation in donator.donations do
 		if donation.item == item then
 			item.quantity = item.quantity + quantity
 			return
 		end
 	end
-	table.insert(self.donations,ZLM_Donation:new(item,quantity))
+	table.insert(donator.donations,ZLM_Donation:new(item,quantity))
     print("Inside donator add or update donation")
 end
 
@@ -53,7 +53,7 @@ function ZLM_UpdateOrAddDonator(name,item,quantity)
             print("About to update ",donator.name,"'s record.");
             print("Updating with ",item,". Quantity: ",quantity);
             print(donator.donations);
-			donator:addOrUpdateDonation(item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
+			ZLM_AddOrUpdateDonation(donator,item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
 			return
 		end
 	end
