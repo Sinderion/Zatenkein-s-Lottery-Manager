@@ -50,10 +50,10 @@ function ZLM_UpdateOrAddDonator(name,item,quantity)
 		if donator.name == name then
             --ZLM_Donator.addOrUpdateDonation(donator, item, quantity)
             --Debug only
-            print("About to update ",donator.name,"'s record.")
-            print("Updating with ",item,". Quantity: ",quantity)
-            print(donator.donations)
-			donator:addorUpdateDonation(item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
+            print("About to update ",donator.name,"'s record.");
+            print("Updating with ",item,". Quantity: ",quantity);
+            print(donator.donations);
+			donator:addOrUpdateDonation(item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
 			return
 		end
 	end
