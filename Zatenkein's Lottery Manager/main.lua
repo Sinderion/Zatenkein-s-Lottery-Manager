@@ -1,8 +1,11 @@
-local ZLM_EventFrame = CreatFrame("Frame")
-local ZLM_InventoryCount = 0
-local waitTable = {}
-local waitFrame = nil
-local ZLM_Donators
+
+-- Not locals lol
+ZLM_DEBUG = 3  --Not used yet.
+ZLM_EventFrame = CreateFrame("Frame")
+ZLM_InventoryCount = 0
+waitTable = {}
+waitFrame = nil
+-- ZLM_Donators
 if ZLM_Donators == nil then 
     ZLM_Donators = {} 
 end
@@ -20,10 +23,12 @@ function ZLM_Donator:new (o,name, item, quantity)
 	else
         self.donations = { ZLM_Donation:new(item,quantity) }
     end
+        --Debug Only
+        print("New Donator created: ", self.name,".");
     return o
 end
 
-function ZLM_Donator:addOrUpdateDonation (item,quantity)
+function ZLM_Donator:addOrUpdateDonation(item,quantity)
 	for _,donation in self.donations do
 		if donation.item == item then
 			item.quantity = item.quantity + quantity
@@ -45,11 +50,12 @@ end
 function ZLM_UpdateOrAddDonator(name,item,quantity)
 	for _,donator in pairs(ZLM_Donators) do
 		if donator.name == name then
-			donator:addorUpdateDonation(item,quantity)
+            --ZLM_Donator.addOrUpdateDonation(donator, item, quantity)
+			donator:addorUpdateDonation(item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
 			return
 		end
 	end
-	table.insert(ZLM_Donators,Donator:new(nil,name,item,quantity))
+	table.insert(ZLM_Donators,ZLM_Donator:new(nil,name,item,quantity))
 end
 
 function ZLM_GetInventoryRoom()
@@ -138,11 +144,18 @@ function ZLM_CheckNext(mailID, mailCount)
 end
 
 ZLM_EventFrame:RegisterEvent("MAIL_SHOW")
+ZLM_EventFrame:RegisterEvent("MAIL_INBOX_UPDATE") -- Required before you can query inbox info.
+
 ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
+    --Debug only
+    print("OnEvent triggered");
 	ZLM_mailCount, ZLM_serverCount = GetInboxNumItems()
 	ZLM_GetInventoryRoom()
+    --Debug only
+    print("Loaded up. Mail count = ", ZLM_mailCount, " ZLM_serverCount = ", ZLM_serverCount, " Inventory space = ", ZLM_InventoryCount);
+
 	if ZLM_mailCount > 0 then
-		if inventorySpace > 8 then
+		if ZLM_InventoryCount > 8 then
 			ZLM__wait(0.5,ZLM_TryGetMail,1, ZLM_mailCount)
 		else
 			ZLM__wait(0.5,ZLM_TryGetMailSlow,1, ZLM_mailCount)
