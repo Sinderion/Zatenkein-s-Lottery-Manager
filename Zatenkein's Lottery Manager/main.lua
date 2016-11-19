@@ -11,16 +11,14 @@ ZLM_Donator = { name = "", donations = {} }
 ZLM_Donation = { item = "", quantity = 0 }
 
 function ZLM_Donator:new (o,name, item, quantity)
-	o = o or {}
-	setmetatable(o,self)
-	self.__index = self
-	self.name = name
+	self = {};
+	self.name = name;
 	if item == nil then
 		self.donations = {}
 	else
         self.donations = { ZLM_Donation:new(item,quantity) }
     end
-    return o
+    return self;
 end
 
 function ZLM_Donator:addOrUpdateDonation (item,quantity)
@@ -34,12 +32,10 @@ function ZLM_Donator:addOrUpdateDonation (item,quantity)
 end
 
 function ZLM_Donation:new(item,quantity,o)
-	o = o or {}
-	setmetatable(o,self)
-	self.__index = self
-	self.item = item or "NoItem"
-	self.quantity = quantity or 0
-	return o
+	self = {};
+	self.item = item or "NoItem";
+	self.quantity = quantity or 0;
+	return self;
 end
 
 function ZLM_UpdateOrAddDonator(name,item,quantity)
