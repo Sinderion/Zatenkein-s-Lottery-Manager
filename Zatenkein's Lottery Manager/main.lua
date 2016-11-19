@@ -24,7 +24,7 @@ function ZLM_Donator:new (o,name, item, quantity)
     end
         --Debug Only
         print("New Donator created: ", self.name,".");
-    return o
+    return self;
 end
 
 function ZLM_AddOrUpdateDonation(donator,item,quantity)
