@@ -8,7 +8,7 @@ waitTable = {}
 waitFrame = nil
 -- ZLM_Donators
 if ZLM_Donators == nil then 
-    ZLM_Donators = {} 
+    ZLM_Donators = {};
 end
 
 ZLM_Donator = { name = "", donations = {} }
@@ -106,6 +106,7 @@ end
 function ZLM_TryGetMail(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
     --Debug only
+	itemCount = itemCount or 0;
     print("Checking next mail: Found item from ", sender,": ",subject," Total of ",itemCount," items.");
 	if itemCount > 0 and CODAmount == 0 then
 		local itemIndex = 1
