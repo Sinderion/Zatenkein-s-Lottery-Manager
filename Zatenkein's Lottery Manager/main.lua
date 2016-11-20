@@ -34,7 +34,10 @@ function ZLM_AddOrUpdateDonation(donator,item,quantity)
 			return
 		end
 	end
-	table.insert(donator.donations,ZLM_Donation:new(item,quantity))
+	newDonation = ZLM_Donation:new(item,quantity);
+	if newDonation.item ~= "NoItem" and newDonation.quantity ~= 0 then
+		table.insert(donator.donations,ZLM_Donation:new(item,quantity))
+	end
     print("Inside donator add or update donation")
 end
 
@@ -47,6 +50,7 @@ end
 
 function ZLM_UpdateOrAddDonator(name,item,quantity)
 	for _,donator in pairs(ZLM_Donators) do
+		print("donator - ", donator.name);
 		if donator.name == name then
             --ZLM_Donator.addOrUpdateDonation(donator, item, quantity)
             --Debug only
@@ -54,10 +58,13 @@ function ZLM_UpdateOrAddDonator(name,item,quantity)
             print("Updating with ",item,". Quantity: ",quantity);
             print(donator.donations);
 			ZLM_AddOrUpdateDonation(donator,item,quantity) --Maybe wrong, maybe right, calling differently to weed out why error.
+			donatorFound = 1
 			return
 		end
 	end
 	table.insert(ZLM_Donators,ZLM_Donator:new(name,item,quantity))
+
+	
 end
 
 function ZLM_GetInventoryRoom()
@@ -78,9 +85,12 @@ function ZLM_TryGetMail(mailID, mailCount)
     print("Checking next mail: Found item from ", sender,": ",subject," Total of ",itemCount," items.");
 	if itemCount > 0 and CODAmount == 0 then
 		local itemIndex = 1
-		while itemIndex <= itemCount do
+		while itemIndex <= 12 do
 			local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itemIndex)
-			ZLM_UpdateOrAddDonator(sender,i_name,i_count)
+			if i_name ~= nil then
+				ZLM_UpdateOrAddDonator(sender,i_name,i_count)
+			end
+			print("TGM - ", mailID, " - ", itemIndex , " - ", i_name);
 			TakeInboxItem(mailID,itemIndex)
 			itemIndex = itemIndex + 1
 		end
@@ -93,19 +103,21 @@ function ZLM_TryGetMailSlow(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
     itemCount = itemCount or 0;
 	if itemCount > 0 and CODAmount == 0 then
-		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender) end)
+		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender,1) end)
 	else
 		ZLM_CheckNext(mailID, mailCount);
 	end
 end
 
-function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender)
+function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender,callSelf)
 	print(mailID, " - ", itterate);
 	local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itterate)
 	ZLM_UpdateOrAddDonator(sender,i_name,i_count)
 	TakeInboxItem(mailID,itterate)
 	ZLM_GetInventoryRoom()
+	callSelf = callSelf or 0;
 	if itterate < itemCount then
+		print("TGMI - ", mailID, " - ", itemIndex + 1);
 		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate + 1, sender) end)
 	else
 		ZLM_CheckNext(mailID,mailCount)
@@ -114,7 +126,7 @@ end
 
 function ZLM_CheckNext(mailID, mailCount)
 	print("mailID:", mailID, " - mailCount:", mailCount)
-	if ZLM_InventoryCount > 8 and mailID < mailCount then
+	if ZLM_InventoryCount > 12 and mailID < mailCount then
 		print("CheckNext->ZLM_TryGetMail")
 		ZLM_TryGetMail(mailID + 1,mailCount)
 	elseif ZLM_InventoryCount > 0 and mailID < mailCount then
@@ -141,8 +153,8 @@ ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
         ZLM_CheckMailNow = 0;
     end
     
+	
 
-    
 	ZLM_mailCount, ZLM_serverCount = GetInboxNumItems()
 	ZLM_GetInventoryRoom()
     --Debug only
