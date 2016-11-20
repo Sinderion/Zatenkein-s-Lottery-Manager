@@ -4,6 +4,7 @@ ZLM_DEBUG = 3  --Not used yet.
 ZLM_EventFrame = CreateFrame("Frame")
 ZLM_InventoryCount = 0
 ZLM_CheckMailNow = 1;
+ZLM_FunctionStack = {};
 waitTable = {}
 waitFrame = nil
 -- ZLM_Donators
@@ -78,32 +79,32 @@ function ZLM_GetInventoryRoom()
 	ZLM_InventoryCount = freeSpace
 end
 
-function ZLM_TryGetMail(mailID, mailCount)
-	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
-    --Debug only
-	itemCount = itemCount or 0;
-    print("Checking next mail: Found item from ", sender,": ",subject," Total of ",itemCount," items.");
-	if itemCount > 0 and CODAmount == 0 then
-		local itemIndex = 1
-		while itemIndex <= 12 do
-			local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itemIndex)
-			if i_name ~= nil then
-				ZLM_UpdateOrAddDonator(sender,i_name,i_count)
-			end
-			print("TGM - ", mailID, " - ", itemIndex , " - ", i_name);
-			TakeInboxItem(mailID,itemIndex)
-			itemIndex = itemIndex + 1
-		end
-	end
-	ZLM_GetInventoryRoom()
-	C_Timer.After(0.5,function() ZLM_CheckNext(mailID,mailCount) end);
-end
+--function ZLM_TryGetMail(mailID, mailCount)
+--	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
+--    --Debug only
+--	itemCount = itemCount or 0;
+--    print("Checking next mail: Found item from ", sender,": ",subject," Total of ",itemCount," items.");
+--	if itemCount > 0 and CODAmount == 0 then
+--		local itemIndex = ATTACHMENTS_MAX_RECEIVE
+--		while itemIndex > 0 do
+--			local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itemIndex)
+--			if i_name ~= nil then
+--				ZLM_UpdateOrAddDonator(sender,i_name,i_count)
+--			end
+--			print("TGM - ", mailID, " - ", itemIndex , " - ", i_name);
+--			TakeInboxItem(mailID,itemIndex)
+--			itemIndex = itemIndex - 1
+--		end
+--	end
+--	ZLM_GetInventoryRoom()
+--	C_Timer.After(1,function() ZLM_CheckNext(mailID,mailCount) end);
+--end
 
 function ZLM_TryGetMailSlow(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
     itemCount = itemCount or 0;
 	if itemCount > 0 and CODAmount == 0 then
-		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender,1) end)
+		C_Timer.After(1,function() ZLM_TryGetMailItem(mailID,mailCount,itemCount,ATTACHMENTS_MAX_RECEIVE, sender,1) end)
 	else
 		ZLM_CheckNext(mailID, mailCount);
 	end
@@ -111,14 +112,15 @@ end
 
 function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender,callSelf)
 	print(mailID, " - ", itterate);
-	local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itterate)
+	local i_name, i_texture, i_unknown, i_count, i_canUse = GetInboxItem(mailID, itterate)
+	print(i_name, " - ", i_count, " - ", i_quality, " - ",i_canUse)
 	ZLM_UpdateOrAddDonator(sender,i_name,i_count)
 	TakeInboxItem(mailID,itterate)
 	ZLM_GetInventoryRoom()
 	callSelf = callSelf or 0;
-	if itterate < itemCount then
-		print("TGMI - ", mailID, " - ", itemIndex + 1);
-		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate + 1, sender) end)
+	if itterate > 0 then
+		print("TGMI - ", mailID, " - ", itterate - 1);
+		C_Timer.After(1,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate - 1, sender) end)
 	else
 		ZLM_CheckNext(mailID,mailCount)
 	end	
@@ -126,14 +128,12 @@ end
 
 function ZLM_CheckNext(mailID, mailCount)
 	print("mailID:", mailID, " - mailCount:", mailCount)
-	if ZLM_InventoryCount > 12 and mailID < mailCount then
-		print("CheckNext->ZLM_TryGetMail")
-		ZLM_TryGetMail(mailID + 1,mailCount)
-	elseif ZLM_InventoryCount > 0 and mailID < mailCount then
+	if mailID < mailCount then
 		print("CheckNext->ZLM_TryGetMailSlow")
 		ZLM_TryGetMailSlow(mailID + 1,mailCount)
+	else
+		if mailID == mailCount then ZLM_CheckMailNow = 1 end
 	end
-	if mailID == mailCount then ZLM_CheckMailNow = 1 end
 end
 
 --ZLM_EventFrame:RegisterEvent("MAIL_SHOW")
@@ -161,10 +161,8 @@ ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
     print("Loaded up. Mail count = ", ZLM_mailCount, " ZLM_serverCount = ", ZLM_serverCount, " Inventory space = ", ZLM_InventoryCount);
 
 	if ZLM_mailCount > 0 then
-		if ZLM_InventoryCount > 8 then
-			C_Timer.After(0.5,function() ZLM_TryGetMail(1, ZLM_mailCount) end)
-		else
-			C_Timer.After(0.5,function() ZLM_TryGetMailSlow(1, ZLM_mailCount) end)
+		if ZLM_InventoryCount > 0 then
+			C_Timer.After(1,function() ZLM_TryGetMailSlow(1, ZLM_mailCount) end)
 		end
     end
 end)
