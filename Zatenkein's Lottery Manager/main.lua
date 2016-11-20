@@ -28,10 +28,9 @@ function ZLM_Donator:new (name, item, quantity)
 end
 
 function ZLM_AddOrUpdateDonation(donator,item,quantity)
-	print("TABLEVAL:",donator.donations)
-	for donation in donator.donations do
+	for _,donation in pairs(donator.donations) do
 		if donation.item == item then
-			item.quantity = item.quantity + quantity
+			donation.quantity = donation.quantity + quantity
 			return
 		end
 	end
@@ -39,7 +38,7 @@ function ZLM_AddOrUpdateDonation(donator,item,quantity)
     print("Inside donator add or update donation")
 end
 
-function ZLM_Donation:new(item,quantity,o)
+function ZLM_Donation:new(item,quantity)
 	self = {};
 	self.item = item or "NoItem";
 	self.quantity = quantity or 0;
@@ -72,38 +71,6 @@ function ZLM_GetInventoryRoom()
 	ZLM_InventoryCount = freeSpace
 end
 
-
-
-function ZLM__wait(delay, func, ...)
-  if(type(delay)~="number" or type(func)~="function") then
-    return false;
-  end
-  if(waitFrame == nil) then
-    waitFrame = CreateFrame("Frame","WaitFrame", UIParent);
-    waitFrame:SetScript("onUpdate",function (self,elapse)
-      local count = #waitTable;
-      local i = 1;
-      while(i<=count) do
-        local waitRecord = tremove(waitTable,i);
-        local d = tremove(waitRecord,1);
-        local f = tremove(waitRecord,1);
-        local p = tremove(waitRecord,1);
-        if(d>elapse) then
-          tinsert(waitTable,i,{d-elapse,f,p});
-          i = i + 1;
-        else
-          count = count - 1;
-          f(unpack(p));
-        end
-      end
-    end);
-  end
-  tinsert(waitTable,{delay,func,{...}});
-  return true;
-end
-
-
-
 function ZLM_TryGetMail(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
     --Debug only
@@ -119,13 +86,13 @@ function ZLM_TryGetMail(mailID, mailCount)
 		end
 	end
 	ZLM_GetInventoryRoom()
-	ZLM__wait(0.5,CheckNext,mailID,mailCount)
+	C_Timer.After(0.5,CheckNext(mailID,mailCount));
 end
 
 function ZLM_TryGetMailSlow(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
 	if itemCount > 0 and CODAmount == 0 then
-		ZLM__wait(0.5,ZLM_TryGetMailItem,mailID,mailCount,itemCount,1, sender)
+		C_Timer.After(0.5,ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender))
 	end
 end
 
@@ -135,18 +102,22 @@ function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender)
 	TakeInboxItem(mailID,itterate)
 	ZLM_GetInventoryRoom()
 	if itterate < itemCount then
-		ZLM__wait(0.5,ZLM_TryGetMailItem(mailID, itemCount, itterate + 1, sender))
+		C_Timer.After(0.5,ZLM_TryGetMailItem(mailID, itemCount, itterate + 1, sender))
 	else
 		ZLM_CheckNext(mailID,mailCount)
 	end	
 end
 
 function ZLM_CheckNext(mailID, mailCount)
+	print("mailID:", mailID, " - mailCount:", mailCount)
 	if ZLM_InventoryCount > 8 and mailID < mailcount then
+		print("CheckNext->ZLM_TryGetMail")
 		ZLM_TryGetMail(mailID + 1,mailCount)
 	elseif ZLM_InventoryCount > 0 and mailID < mailcount then
+		print("CheckNext->ZLM_TryGetMailSlow")
 		ZLM_TryGetMailSlow(mailID + 1,mailCount)
 	end
+	if mailID == mailCount then ZLM_CheckMailNow = 1 end
 end
 
 --ZLM_EventFrame:RegisterEvent("MAIL_SHOW")
@@ -175,10 +146,9 @@ ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
 
 	if ZLM_mailCount > 0 then
 		if ZLM_InventoryCount > 8 then
-			ZLM__wait(0.5,ZLM_TryGetMail,1, ZLM_mailCount)
-            --C_Timer.After(1,function ZLM_TryGetMail(
+			C_Timer.After(0.5,ZLM_TryGetMail(1, ZLM_mailCount))
 		else
-			ZLM__wait(0.5,ZLM_TryGetMailSlow,1, ZLM_mailCount)
+			C_Timer.After(0.5,ZLM_TryGetMailSlow(1, ZLM_mailCount))
 		end
     end
 end)
