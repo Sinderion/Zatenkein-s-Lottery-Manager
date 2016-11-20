@@ -86,23 +86,27 @@ function ZLM_TryGetMail(mailID, mailCount)
 		end
 	end
 	ZLM_GetInventoryRoom()
-	C_Timer.After(0.5,CheckNext(mailID,mailCount));
+	C_Timer.After(0.5,function() ZLM_CheckNext(mailID,mailCount) end);
 end
 
 function ZLM_TryGetMailSlow(mailID, mailCount)
 	local packageIcon, stationeryIcon, sender, subject, money, CODAmount, daysLeft, itemCount, wasRead, wasReturned, textCreated, canReply, isGM, itemQuantity = GetInboxHeaderInfo(mailID)
+    itemCount = itemCount or 0;
 	if itemCount > 0 and CODAmount == 0 then
-		C_Timer.After(0.5,ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender))
+		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID,mailCount,itemCount,1, sender) end)
+	else
+		ZLM_CheckNext(mailID, mailCount);
 	end
 end
 
 function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender)
+	print(mailID, " - ", itterate);
 	local i_name, i_texture, i_count, i_quality, i_canUse = GetInboxItem(mailID, itterate)
 	ZLM_UpdateOrAddDonator(sender,i_name,i_count)
 	TakeInboxItem(mailID,itterate)
 	ZLM_GetInventoryRoom()
 	if itterate < itemCount then
-		C_Timer.After(0.5,ZLM_TryGetMailItem(mailID, itemCount, itterate + 1, sender))
+		C_Timer.After(0.5,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate + 1, sender) end)
 	else
 		ZLM_CheckNext(mailID,mailCount)
 	end	
@@ -110,10 +114,10 @@ end
 
 function ZLM_CheckNext(mailID, mailCount)
 	print("mailID:", mailID, " - mailCount:", mailCount)
-	if ZLM_InventoryCount > 8 and mailID < mailcount then
+	if ZLM_InventoryCount > 8 and mailID < mailCount then
 		print("CheckNext->ZLM_TryGetMail")
 		ZLM_TryGetMail(mailID + 1,mailCount)
-	elseif ZLM_InventoryCount > 0 and mailID < mailcount then
+	elseif ZLM_InventoryCount > 0 and mailID < mailCount then
 		print("CheckNext->ZLM_TryGetMailSlow")
 		ZLM_TryGetMailSlow(mailID + 1,mailCount)
 	end
@@ -146,9 +150,9 @@ ZLM_EventFrame:SetScript("OnEvent",function(self,event,...)
 
 	if ZLM_mailCount > 0 then
 		if ZLM_InventoryCount > 8 then
-			C_Timer.After(0.5,ZLM_TryGetMail(1, ZLM_mailCount))
+			C_Timer.After(0.5,function() ZLM_TryGetMail(1, ZLM_mailCount) end)
 		else
-			C_Timer.After(0.5,ZLM_TryGetMailSlow(1, ZLM_mailCount))
+			C_Timer.After(0.5,function() ZLM_TryGetMailSlow(1, ZLM_mailCount) end)
 		end
     end
 end)
