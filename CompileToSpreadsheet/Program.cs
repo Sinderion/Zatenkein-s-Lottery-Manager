@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Configuration;
 using System.Net;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CompileToSpreadsheet
 {
@@ -63,15 +64,28 @@ namespace CompileToSpreadsheet
             oSheet = (_Worksheet)oWB.ActiveSheet;
             oSheet.Name = "Donations";
 
+            oSheet.get_Range("A1").Value2 = "Character";
+            oSheet.get_Range("B1").Value2 = "Item";
+            oSheet.get_Range("C1").Value2 = "Quantity";
+
+            oSheet.get_Range("O1").Value2 = "Name";
+            oSheet.get_Range("P1").Value2 = "Total Points";
+
             try
             {
                 WriteMaterialsTable(oSheet);
                 var row = 1;
+                var donorRow = 1;
                 foreach (var key in donators.Keys)
                 {
+                    donorRow += 1;
                     var donator = donators[key];
                     var name = donator["name"].GetStringLenientSafe() ?? "NAME UNKNOWN";
                     var donations = donator["donations"];
+
+                    oSheet.get_Range("O" + donorRow).Value2 = name;
+                    oSheet.get_Range("P" + donorRow).Value2 = "=SUMIF($A$2:$A$1000,$O" + donorRow + ",$D$2:$D$1000)";
+
                     foreach (var donationKey in donations.Keys)
                     {
                         row += 1;
@@ -79,7 +93,7 @@ namespace CompileToSpreadsheet
                         oSheet.get_Range("A" + row).Value2 = name;
                         oSheet.get_Range("B" + row).Value2 = donation["item"].GetStringLenientSafe() ?? "NO ITEM FOUND";
                         oSheet.get_Range("C" + row).Value2 = donation["quantity"].GetIntLenientSafe().HasValue ? donation["quantity"].GetIntLenientSafe().Value : 0;
-                        oSheet.get_Range("D" + row).Value2 = "=VLOOKUP($B2,$G$2:$J$29,4)*C2";
+                        oSheet.get_Range("D" + row).Value2 = "=VLOOKUP($B2,$F$2:$M$29,4,FALSE)*C" + row;
                     }
                 }
             }
@@ -99,6 +113,16 @@ namespace CompileToSpreadsheet
             List<string> ingredients = ConfigurationManager.AppSettings["ZLM.Ingredients"].Split(',').ToList();
             List<string> hotItems = ConfigurationManager.AppSettings["ZLM.HotItems"].Split(',').ToList();
             var ingredientRow = 1;
+
+            sheet.get_Range("F1").Value2 = "Item";
+            sheet.get_Range("G1").Value2 = "Base Entries";
+            sheet.get_Range("H1").Value2 = "Hot Items";
+            sheet.get_Range("I1").Value2 = "Entries Per Item";
+            sheet.get_Range("J1").Value2 = "Recieved";
+            sheet.get_Range("K1").Value2 = "Entries Awarded for Item";
+            sheet.get_Range("L1").Value2 = "Item Value";
+            sheet.get_Range("M1").Value2 = "Total Value";
+
             foreach(string ingredient in ingredients)
             {
                 var ingredientId = ConfigurationManager.AppSettings["ZLM." + ingredient + ".Id"];
@@ -107,21 +131,28 @@ namespace CompileToSpreadsheet
                 sheet.get_Range("G" + ingredientRow).Value2 = ConfigurationManager.AppSettings["ZLM." + ingredient];
                 sheet.get_Range("H" + ingredientRow).Value2 = hotItems.Contains(ingredient) ? 1 : 0;
                 sheet.get_Range("I" + ingredientRow).Value2 = "=G" + ingredientRow + "*(H" + ingredientRow + "+1)";
-                sheet.get_Range("J" + ingredientRow).Value2 = "=SUMIF($B$2:$B$1004,$G" + ingredientRow + ",$C$2:$C$1004)";
-                sheet.get_Range("K" + ingredientRow).Value2 = "=K" + ingredientRow + "*J" + ingredientRow;
-                sheet.get_Range("L" + ingredientRow).Value2 = GetItemPrice(ingredient);
+                sheet.get_Range("J" + ingredientRow).Value2 = "=SUMIF($B$2:$B$1004,$F" + ingredientRow + ",$C$2:$C$1004)";
+                sheet.get_Range("K" + ingredientRow).Value2 = "=J" + ingredientRow + "*I" + ingredientRow;
+                sheet.get_Range("L" + ingredientRow).Value2 = GetItemPrice(ingredientId);
+                sheet.get_Range("M" + ingredientRow).Value2 = "=L" + ingredientRow + "*J" + ingredientRow;
             }
+            ingredientRow += 1;
+            sheet.get_Range("F" + ingredientRow).Value2 = "Total";
+            sheet.get_Range("K" + ingredientRow).Value2 = "=SUM(K2:K" + (ingredientRow - 1) + ")";
+            sheet.get_Range("M" + ingredientRow).Value2 = "=SUM(M2:M" + (ingredientRow - 1) + ")";
         }
 
-
         static object auctionData;
-        public static int GetItemPrice(string item)
+        public static decimal GetItemPrice(string item)
         {
             if(auctionData == null)
             {
                 PopulateAuctionData();
             }
-            return 0;
+            var items = from auction in ((JArray)auctionData)
+                        where (string)auction["item"] == item && (decimal)auction["buyout"] != 0
+                        select (decimal)auction["buyout"] / 10000 / (decimal)auction["quantity"];
+            return items.Min();
         }
 
         public static void PopulateAuctionData()
