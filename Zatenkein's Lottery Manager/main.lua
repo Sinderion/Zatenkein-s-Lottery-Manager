@@ -114,16 +114,25 @@ function ZLM_TryGetMailItem(mailID,mailCount,itemCount,itterate,sender,callSelf)
 	print(mailID, " - ", itterate);
 	local i_name, i_texture, i_unknown, i_count, i_canUse = GetInboxItem(mailID, itterate)
 	print(i_name, " - ", i_count, " - ", i_quality, " - ",i_canUse)
-	ZLM_UpdateOrAddDonator(sender,i_name,i_count)
-	TakeInboxItem(mailID,itterate)
-	ZLM_GetInventoryRoom()
-	callSelf = callSelf or 0;
-	if itterate > 0 then
-		print("TGMI - ", mailID, " - ", itterate - 1);
-		C_Timer.After(1,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate - 1, sender) end)
+	if i_name ~= nil then
+		ZLM_UpdateOrAddDonator(sender,i_name,i_count)
+		TakeInboxItem(mailID,itterate)
+		ZLM_GetInventoryRoom()
+		callSelf = callSelf or 0;
+		if itterate > 0 then
+			print("TGMI - ", mailID, " - ", itterate - 1);
+			C_Timer.After(1,function() ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate - 1, sender) end)
+		else
+			ZLM_CheckNext(mailID,mailCount)
+		end	
 	else
-		ZLM_CheckNext(mailID,mailCount)
-	end	
+		if itterate > 0 then
+			print("TGMI - ", mailID, " - ", itterate - 1);
+			ZLM_TryGetMailItem(mailID, mailCount, itemCount, itterate - 1, sender)
+		else
+			ZLM_CheckNext(mailID,mailCount)
+		end
+	end
 end
 
 function ZLM_CheckNext(mailID, mailCount)
